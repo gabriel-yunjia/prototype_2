@@ -10,6 +10,9 @@ characters = [];
 options = {
   theme: "simple",
   viewSize: {x:300, y:300},
+  isPlayingBgm: true,
+  isReplayEnabled: true
+  
 };
 
 ///** @type {Vector} */
@@ -22,10 +25,13 @@ let enemies;
 let itemTime;
 let items;
 let num;
+let spawnRate;
+let enemyCount;
 // // let items;
 
 function update() {
 
+ addScore(0.05);
   // init the pos of player
   if (!ticks) {
     player = vec(150, 285);
@@ -36,8 +42,13 @@ function update() {
     items = [];
     itemTime = 0;
     num = 2;
+    spawnRate = 0.007;
+    enemyCount = 0;
+    
   }
 
+  spawnRate += 0.0000001;
+  // console.log(spawnRate);
   // draw boundaries
   color("light_yellow");
   rect(0, 0, 300, 7);
@@ -81,17 +92,22 @@ function update() {
   if (input.isPressed) {
     color("light_black");
     bar(player, 20, 3, (angle -= 0.08), 0);
+    play("hit");
+    
   }
 
   // move slower when choosing direction
   if (input.isJustPressed) {
     velocity.x *= 0.4;
     velocity.y *= 0.4;
+    
+    
   }
 
   // change direction
   if (input.isJustReleased) {
     velocity = vec(speed * Math.cos(angle), speed * Math.sin(angle));
+    play("jump");
   }
 
   // update enemies
@@ -101,8 +117,11 @@ function update() {
 }
 
 function updateEnemies() {
+
   // generate enemies
-  if (rnd() < 0.007) {
+  if (rnd() < (spawnRate)) {
+    enemyCount += 1;
+    // console.log(enemyCount);
     enemies.push({
       pos: vec(rnd(7, 293), rnd(7, 293)),
       direction: vec(rnd(0.5, 0.8) * speed * Math.cos(rnd(0, 2 * Math.PI)), rnd(0.5, 0.8) * speed * Math.sin(rnd(0, 2 * Math.PI))),
@@ -143,8 +162,25 @@ function updateEnemies() {
 
     // check collision
     if (box(enemy.pos,7).isColliding.rect.green) {
+      play("explosion");
       end();
     }
+
+    if (input.isJustPressed) {
+      enemy.direction.x *= 0.4;
+      enemy.direction.y *= 0.4;
+      
+    }
+  
+    // change direction
+    if (input.isJustReleased) {
+      enemy.direction.x /= 0.4;
+      enemy.direction.y /= 0.4;
+      
+    }
+
+
+
   });
 
 }
@@ -165,8 +201,13 @@ function updateItems() {
   // collect the item
   remove(items, (item) => {
     if (box(item.pos,15).isColliding.rect.green) {
-      num = 4;
+      play("coin");
+      num = Math.ceil(rnd(enemyCount/3, enemyCount));
+      console.log(num);
+      addScore(num*5);
+      enemyCount = enemyCount - num;
       remove(enemies, (enemy) => {
+        
         num --;
         return num > 0;
       });
